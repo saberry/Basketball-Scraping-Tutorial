@@ -1,0 +1,250 @@
+---
+title: "Scraping Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = TRUE)
+```
+
+# Package Installation and Use
+
+To scrape data using R, we are going to need the following packages:
+
+```{r, eval = FALSE}
+install.packages(c("dplyr", "readr", "rvest", "xml2"))
+```
+
+<aside>
+Have questions about what a function does? Put your cursor on the function name and press F1. You can also type `??*functionName*` in the console.
+</aside>
+
+Once you have your packages installed, you will need to get them ready to use in your R session.
+
+```{r}
+library(dplyr)
+
+library(rvest)
+```
+
+So far, so good! 
+
+# R -- Very Quickly
+
+R is an object-oriented language, in that we are creating objects and performing some kind of operation (a *function*) on those objects. Let's look at how this works:
+
+First, we can define a variable called `x`:
+
+```{r}
+x <- 1:10
+```
+
+<aside>
+The weird arrow (*<-*) is the assignment operator. It is saying, "this thing is called x and x is every number between 1 and 10." You will also see *=* as an assignment operator, but you will be looked down upon by various people -- not me, though.
+</aside>
+
+After defining our variable, we can use functions to change that variable or create something new:
+
+```{r}
+mean(x)
+```
+In the previous line of code, we just took the mean of `x`; we did not change `x` or create anything new.
+
+We can create a new object called `xMean`:
+
+```{r}
+xMean <- mean(x)
+```
+
+Now, we can change `x`:
+
+```{r}
+x <- x + xMean
+```
+
+You practically know R now.
+
+# Pulling Data
+
+## Reading CSVs 
+
+While scraping is a primary concern for us, we don't always need to bring out the heavy artillery. Some sites will make it easy for us and we can just point R towards a .csv file. We probably all owe Ken Massey some gratitude for all of his data and for providing it in a csv:
+
+```{r}
+masseyComparison <- readr::read_csv("https://www.masseyratings.com/cb/compare.csv")
+```
+
+That is most certainly gibberish, so let's try to look at it before reading it in. When exploring the file just a little bit, we can see that our data starts on line 72 -- therefore, we need to skip 71 lines before we start reading in the data.
+
+```{r}
+masseyComparison <- readr::read_csv("https://www.masseyratings.com/cb/compare.csv", 
+                            skip = 71)
+
+rmarkdown::paged_table(masseyComparison)
+```
+
+<aside>
+That bit of code that starts with `rmarkdown` is just to print fancy tables in documents. If you want to see your data, you can click on it in the *Environment* pane or use the function `View()`
+</aside>
+
+We have one data source pulled down and several more to go!
+
+## Scraping
+
+When data providers do not have a nicely-packaged csv file sitting around, we need to get creative with grabbing the data. The depths of our creativity will be far reaching, so let's 
+
+### Defining Links
+
+So that everything is in one place, we can define all of our links as follows:
+
+```{r}
+sportsRefLink <- "https://www.sports-reference.com/cbb/"
+
+natstatLink <- "https://www.natstat.com"
+
+coachesDBLink <- "https://www.coachesdatabase.com/college-basketball-programs/"
+
+kenpomLink <- "https://kenpom.com/"
+
+ncaaLink <- "https://www.ncaa.com/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings"
+
+kaggleLink <- "https://www.kaggle.com/ncaa/ncaa-basketball"
+
+googlePublicLink <- "console.cloud.google.com/marketplace/details/ncaa-bb-public/ncaa-basketball"
+
+nittyGrittyLink <- "https://www.warrennolan.com/basketball/2018/nitty-live"
+
+hoopMathLink <- "https://www.hoop-math.com"
+
+haslamLink <- "https://www.haslametrics.com"
+
+oneManLink <- "https://www.onemancommittee.com/s-curve-rankings/"
+```
+
+In isolation, these do absolutely nothing -- they are just character strings at this point. 
+
+### Reading Tables
+
+Before stringing a bunch of code together, let's take it step-by-step.
+
+The first thing that we can do is to read the html from the page into R:
+
+```{r}
+nittyGrittyData <- read_html(nittyGrittyLink)
+```
+
+This grabs the entire html from the link that we passed into the `read_html` function.
+
+Before moving onto the next part, it is worth introducing the pipe operator: *%>%*. The pipe allows us to pass output from one function into whatever function comes next.
+
+With that, we can extract the html table out of the entire html file:
+
+```{r}
+nittyGrittyData <- read_html(nittyGrittyLink) %>% 
+  html_table()
+```
+
+When we explore our `nittyGrittyData` object, we see that we actually have a list of 3 different tables. Since there were 3 table elements on that page, the `html_table` function grabbed them all. This does not pose any challenges for us to get the data that we want to get -- we can just extract our wanted table with a shortcut function: 
+
+```{r}
+nittyGrittyData <- read_html(nittyGrittyLink) %>% 
+  html_table() %>% 
+  `[[`(3)
+
+rmarkdown::paged_table(nittyGrittyData)
+```
+
+While it is clear that we will need to do some data cleaning, we do have our data.
+
+This will work for a significant portion of tables that you will encounter (e.g., Ken Pomeroy and the NCAA site):
+
+```{r}
+kenPomData <- read_html(kenpomLink) %>% 
+  html_table() %>% 
+  `[[`(1)
+
+rmarkdown::paged_table(kenPomData)
+```
+
+```{r}
+ncaaData <- read_html(ncaaLink) %>% 
+  html_table() %>% 
+  `[[`(1)
+
+rmarkdown::paged_table(ncaaData)
+```
+
+### Exploring The Source
+
+Place holder for the s curve stuff here!
+
+```{r}
+
+```
+
+
+### Deeper Down The Rabbit Hole
+
+Thankfully, table elements are easy; however, not everything is that easy.
+
+If we try the same thing with *haslametrics*, we would get the following:
+
+```{r}
+haslamData <- read_html(haslamLink) %>% 
+  html_table()
+```
+
+A blank list is really not what we are after. This will point us towards looking at the page's source (Ctrl + Shift + I should bring it up in most browsers). There are two routes we can go here. The first is to find the element names and/or classes of the data that we are trying to find. The second is to examine the network requests that happen when we load the page. When inspecting the network structure, we can see that all of the data is sitting in a nice *xml* file.
+
+```{r}
+haslamData <- read_html("http://haslametrics.com/ratings.xml")
+
+haslamNodes <- xml_find_all(haslamData, "//mr") %>% 
+  xml_attrs() 
+```
+
+That nodes object will give us all of the data, but not in any shape that we can actually see it in a sensible form, let alone use it! We will need to do a bit of digging into the structure of the object.
+
+```{r}
+str(haslamNodes[[1]])
+```
+
+We find a named character vector, so we can use this to our advantage:
+
+```{r}
+haslamNames <- attr(haslamNodes[[1]], "names")
+```
+
+This next part is going to look very much like magic. And just like magic, it is nothing but practiced finger motions.
+
+```{r}
+haslamData <- lapply(1:length(haslamNodes), function(x) {
+  
+  dataRow = unname(haslamNodes[[x]])
+  
+  dimensionNames = list(x, haslamNames)
+  
+  result = matrix(dataRow, byrow = TRUE,
+                  nrow = 1, ncol = length(haslamNames), 
+                  dimnames = dimensionNames)
+  
+  result = as.data.frame(result)
+})
+
+haslamData <- bind_rows(haslamData)
+```
+
+
+# Saving Data
+
+We have a lot of work done, but it is far from over. Since we should feel pretty good about having our data pulled down, let's be sure to save it.
+
+```{r, eval = FALSE}
+save(haslamData, kenPomData, masseyComparison, ncaaData, 
+     file = "your/location/basketballData.RData")
+```
+
+
+# Prepping For Next Time
+
+Believe it or not, this was the easy part of the process. Next week, we are going to see how to get all of this put together. Before then, it might help you to work on regular expressions.
