@@ -1,6 +1,11 @@
 ---
-title: "Scraping Data"
-output: html_document
+title: "NCAA Tournament Contest"
+description: |
+  Scraping Data
+output:
+  radix::radix_article:
+    toc: true
+    toc_depth: 2
 ---
 
 ```{r setup, include=FALSE}
@@ -16,7 +21,7 @@ install.packages(c("dplyr", "readr", "rvest", "xml2"))
 ```
 
 <aside>
-Have questions about what a function does? Put your cursor on the function name and press F1. You can also type `??*functionName*` in the console.
+Have questions about what a function does? Put your cursor on the function name and press F1. You can also type `??functionName` in the console.
 </aside>
 
 Once you have your packages installed, you will need to get them ready to use in your R session.
@@ -60,6 +65,8 @@ Now, we can change `x`:
 
 ```{r}
 x <- x + xMean
+
+x
 ```
 
 You practically know R now.
@@ -72,7 +79,13 @@ While scraping is a primary concern for us, we don't always need to bring out th
 
 ```{r}
 masseyComparison <- readr::read_csv("https://www.masseyratings.com/cb/compare.csv")
+
+rmarkdown::paged_table(masseyComparison)
 ```
+
+<aside>
+That bit of code that starts with `rmarkdown` is just to print fancy tables in documents. If you want to see your data, you can click on it in the *Environment* pane or use the function `View()`
+</aside>
 
 That is most certainly gibberish, so let's try to look at it before reading it in. When exploring the file just a little bit, we can see that our data starts on line 72 -- therefore, we need to skip 71 lines before we start reading in the data.
 
@@ -83,15 +96,12 @@ masseyComparison <- readr::read_csv("https://www.masseyratings.com/cb/compare.cs
 rmarkdown::paged_table(masseyComparison)
 ```
 
-<aside>
-That bit of code that starts with `rmarkdown` is just to print fancy tables in documents. If you want to see your data, you can click on it in the *Environment* pane or use the function `View()`
-</aside>
 
 We have one data source pulled down and several more to go!
 
 ## Scraping
 
-When data providers do not have a nicely-packaged csv file sitting around, we need to get creative with grabbing the data. The depths of our creativity will be far reaching, so let's 
+When data providers do not have a nicely-packaged csv file sitting around, we need to get creative with grabbing the data. The depths of our creativity will be far reaching, so let's start easy and work our way towards complex.
 
 ### Defining Links
 
@@ -144,12 +154,20 @@ nittyGrittyData <- read_html(nittyGrittyLink) %>%
   html_table()
 ```
 
+We can continue building more functions if we need to do so.
+
 When we explore our `nittyGrittyData` object, we see that we actually have a list of 3 different tables. Since there were 3 table elements on that page, the `html_table` function grabbed them all. This does not pose any challenges for us to get the data that we want to get -- we can just extract our wanted table with a shortcut function: 
 
 ```{r}
 nittyGrittyData <- read_html(nittyGrittyLink) %>% 
   html_table() %>% 
   `[[`(3)
+```
+
+We can even add a new column to our data, just to keep track of the data source:
+
+```{r}
+nittyGrittyData$dataSource = "nittyGritty"
 
 rmarkdown::paged_table(nittyGrittyData)
 ```
@@ -176,16 +194,34 @@ rmarkdown::paged_table(ncaaData)
 
 ### Exploring The Source
 
-Place holder for the s curve stuff here!
+For some sites, something might look like a table, might actually be a table, but will not be recognizable when you pull it as a table with `html_table`.
 
 ```{r}
+oneManData <- read_html(oneManLink) %>% 
+  html_table(fill = TRUE)
 
+oneManData
 ```
 
+That is no good. We have two separate data frames, with both data frames have 4 columns. While it is technically correct given the shape of the original, we would need to do a lot of work to get it in shape.
+
+This points us towards looking at the page's source (Ctrl + Shift + I should bring it up in most browsers). There are two routes we can go here. The first is to find the element names and/or classes of the data that we are trying to find. The second is to examine the network requests that happen when we load the page. 
+
+Let's look for elements names for this one.
+
+```{r}
+oneManData <- read_html(oneManLink) %>% 
+  html_nodes("table tr td") %>% 
+  html_text()
+
+oneManData
+```
+
+While that is certainly not in a tabular format now, it will be.
 
 ### Deeper Down The Rabbit Hole
 
-Thankfully, table elements are easy; however, not everything is that easy.
+Thankfully, table elements are easy and named CSS elements are just a little exploration away; however, not everything is that easy.
 
 If we try the same thing with *haslametrics*, we would get the following:
 
@@ -194,7 +230,18 @@ haslamData <- read_html(haslamLink) %>%
   html_table()
 ```
 
-A blank list is really not what we are after. This will point us towards looking at the page's source (Ctrl + Shift + I should bring it up in most browsers). There are two routes we can go here. The first is to find the element names and/or classes of the data that we are trying to find. The second is to examine the network requests that happen when we load the page. When inspecting the network structure, we can see that all of the data is sitting in a nice *xml* file.
+A blank list is really not what we are after, so we can check on the elements names within the structure.
+
+This looks promising...
+
+```{r}
+haslamData <- read_html(haslamLink) %>% 
+  html_nodes(".maintable")
+```
+
+But no, we are once again denied by the web developers! We could try many things down the tree: "#tdData", "td", etc. No matter what we try, we will end with failure.
+
+When inspecting the network structure, we can see that all of the data is sitting in a nice *xml* file.
 
 ```{r}
 haslamData <- read_html("http://haslametrics.com/ratings.xml")
