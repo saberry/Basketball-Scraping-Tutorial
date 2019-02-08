@@ -1,8 +1,3 @@
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, comment = "")
-```
-
 # Workshops for NCAA Competition
 
 In the following weeks, we are going to start with the basics of web scraping, learn how to clean the scraped data, and ultimately engage in some modeling.
