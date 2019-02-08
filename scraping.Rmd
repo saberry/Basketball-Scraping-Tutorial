@@ -9,7 +9,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
 # Package Installation and Use
@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = TRUE)
 To scrape data using R, we are going to need the following packages:
 
 ```{r, eval = FALSE}
-install.packages(c("dplyr", "readr", "rvest", "xml2"))
+install.packages(c("dplyr", "readr", "rvest", "tidyr", "xml2"))
 ```
 
 <aside>
@@ -30,6 +30,8 @@ Once you have your packages installed, you will need to get them ready to use in
 library(dplyr)
 
 library(rvest)
+
+library(tidyr)
 ```
 
 So far, so good! 
@@ -147,6 +149,14 @@ This grabs the entire html from the link that we passed into the `read_html` fun
 
 Before moving onto the next part, it is worth introducing the pipe operator: *%>%*. The pipe allows us to pass output from one function into whatever function comes next.
 
+As a quick example:
+
+```{r}
+1:10 %>% 
+  sum() %>% 
+  + 10
+```
+
 With that, we can extract the html table out of the entire html file:
 
 ```{r}
@@ -154,7 +164,11 @@ nittyGrittyData <- read_html(nittyGrittyLink) %>%
   html_table()
 ```
 
-We can continue building more functions if we need to do so.
+<aside>
+In practice, you only want to read the html source once and leave it as its own object. For demonstration, though, we can proceed.
+</aside>
+
+We can continue building more functions into our chunk if we need to do so.
 
 When we explore our `nittyGrittyData` object, we see that we actually have a list of 3 different tables. Since there were 3 table elements on that page, the `html_table` function grabbed them all. This does not pose any challenges for us to get the data that we want to get -- we can just extract our wanted table with a shortcut function: 
 
@@ -164,10 +178,14 @@ nittyGrittyData <- read_html(nittyGrittyLink) %>%
   `[[`(3)
 ```
 
+<aside>
+The `[[` function is nonsense, but will become obvious once you learn more about list objects. We are just extracting out a specific element from a list.
+</aside>
+
 We can even add a new column to our data, just to keep track of the data source:
 
 ```{r}
-nittyGrittyData$dataSource = "nittyGritty"
+nittyGrittyData$dataSource <- "nittyGritty"
 
 rmarkdown::paged_table(nittyGrittyData)
 ```
@@ -203,7 +221,7 @@ oneManData <- read_html(oneManLink) %>%
 oneManData
 ```
 
-That is no good. We have two separate data frames, with both data frames have 4 columns. While it is technically correct given the shape of the original, we would need to do a lot of work to get it in shape.
+That is no good. We have two separate data frames, with both data frames having 4 columns. While it is technically correct given the shape of the original, we would need to do a lot of work to get it in shape.
 
 This points us towards looking at the page's source (Ctrl + Shift + I should bring it up in most browsers). There are two routes we can go here. The first is to find the element names and/or classes of the data that we are trying to find. The second is to examine the network requests that happen when we load the page. 
 
@@ -217,7 +235,58 @@ oneManData <- read_html(oneManLink) %>%
 oneManData
 ```
 
-While that is certainly not in a tabular format now, it will be.
+While that is certainly not in a tabular format now, it will be when we are all done.
+
+These issues are becoming more common than they have been in the past and a great deal of exploration is required when finding data.
+
+Let's see another example:
+
+```{r}
+hoopMathData <- read_html("https://www.hoop-math.com/leader_d2019.php") %>% 
+  html_table() %>% 
+  `[[`(1)
+
+hoopMathData
+```
+
+It found the column names, but no data&#8253; That is okay -- we can keep those names.
+
+```{r}
+hoopMathDataNames <- names(hoopMathData)
+```
+
+If we explore the network structure, here is what we find:
+
+```{r}
+hoopMathData <- read_html("https://www.hoop-math.com/leader_d2019.php") %>% 
+  html_nodes("#container #bodytext table tbody")
+
+hoopMathData
+```
+
+This looks much closer to what we need, so let's just take the text out and process it that way:
+
+```{r}
+hoopMathData <- read_html("https://www.hoop-math.com/leader_d2019.php") %>% 
+  html_nodes("#container #bodytext table tbody")%>% 
+  html_text()
+```
+
+While this looks incredibly daunting at first glance, we can see a pretty neatly-defined pattern for splitting the data into component pieces.
+
+```{r}
+hoopMathSplitRows <- data.frame(strsplit(hoopMathData, "(\n\n)"), 
+                                stringsAsFactors = FALSE)
+
+names(hoopMathSplitRows) <- "totalMess"
+
+hoopMathData <- separate(hoopMathSplitRows, col = totalMess, 
+                         into = hoopMathDataNames, sep = "\n")
+
+rmarkdown::paged_table(hoopMathData)
+```
+
+It is worth noting here that we took something that looked *almost* impossible and got it into useable shape in 7 lines of code (not counting line breaks for pipes!).
 
 ### Deeper Down The Rabbit Hole
 
@@ -228,6 +297,8 @@ If we try the same thing with *haslametrics*, we would get the following:
 ```{r}
 haslamData <- read_html(haslamLink) %>% 
   html_table()
+
+haslamData
 ```
 
 A blank list is really not what we are after, so we can check on the elements names within the structure.
@@ -237,6 +308,8 @@ This looks promising...
 ```{r}
 haslamData <- read_html(haslamLink) %>% 
   html_nodes(".maintable")
+
+haslamData
 ```
 
 But no, we are once again denied by the web developers! We could try many things down the tree: "#tdData", "td", etc. No matter what we try, we will end with failure.
@@ -291,7 +364,18 @@ save(haslamData, kenPomData, masseyComparison, ncaaData,
      file = "your/location/basketballData.RData")
 ```
 
+<aside>
+Whenever you close RStudio, it will ask you if you want to save your workspace. It is a trap!
+</aside>
 
 # Prepping For Next Time
 
-Believe it or not, this was the easy part of the process. Next week, we are going to see how to get all of this put together. Before then, it might help you to work on regular expressions.
+Believe it or not, this was the easy part of the process. Next week, we are going to see how to get all of this put together. Before then, it might help you to work on regular expressions. Here are some good resources:
+
+<a href="https://medium.com/factory-mind/regex-tutorial-a-simple-cheatsheet-by-examples-649dc1c3f285">Brief Introduction</a>
+
+<a href="https://regexr.com/">regexr tester</a>
+
+<a href="https://regexone.com/">A good tutorial</a>
+
+<a href="https://www.rexegg.com/"> A bit of everything</a>
