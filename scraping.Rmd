@@ -361,7 +361,7 @@ We have a lot of work done, but it is far from over. Since we should feel pretty
 
 ```{r, eval = FALSE}
 save(haslamData, kenPomData, masseyComparison, ncaaData,
-     hoopMathData, nittyGrittyData,
+     hoopMathData, nittyGrittyData, oneManData,
      file = "basketballData.RData")
 ```
 
