@@ -1,0 +1,125 @@
+---
+title: "NCAA Tournament Contest"
+description: |
+  Scraping Data
+output:
+  radix::radix_article:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# A Brief Review
+
+Last time, we scraped data coming from a few different sources: tables, things that look like tables, and numbers clearly coming from Dante's 5th circle. The bulk of our work was done using the common `read_html` to `html_table` or `html_nodes`, we did see that we need to utilize a little bit of XML for some of the more complicated affairs.  
+
+While our focus last time was mainly getting the data in, we are going to focus our attention now on cleaning the data and hoping to join it together.
+
+# Basic Data Manipulation
+
+```{r}
+library(dplyr)
+
+library(stringr)
+
+library(tidyr)
+
+load("basketballData.RData")
+```
+
+
+If we take another look at our data from Ken Pomeroy, we see that we might have an interesting issue.
+
+```{r}
+rmarkdown::paged_table(kenPomData)
+```
+
+We need to do something about those columns names:
+
+```{r}
+oldNames = names(kenPomData)
+
+newNames = kenPomData[1, ]
+
+newNames = unlist(ifelse(oldNames != "", paste(newNames, oldNames, sep = "_"), newNames))
+
+newNames = gsub("\\s|-", "_", newNames)
+
+newNames = ifelse(duplicated(newNames), paste(newNames, "rank", sep = "_"), newNames)
+
+names(kenPomData) = newNames
+
+kenPomData = kenPomData %>% 
+  filter(Rk != "" & Rk != "Rk")
+
+rmarkdown::paged_table(kenPomData)
+```
+
+
+Finally, we can clean up the variables and convert them appropriately:
+
+```{r}
+kenPomData = kenPomData %>% 
+  separate(., W_L, into = c("Wins", "Losses")) %>%
+  mutate_at(., .vars = vars(Rk, Wins:AdjEM_NCSOS_rank), as.numeric) %>% 
+  mutate(Win_Percentage = Wins / (Wins + Losses))
+
+rmarkdown::paged_table(kenPomData)
+```
+
+
+# String Processing
+
+Let's begin by returning to one of our first tables that we pulled in from the web: the nittyGritty table
+
+```{r}
+head(nittyGrittyData)
+```
+
+For the sake of getting the data in shape, we need to drop those rows without names:
+
+```{r}
+dropCols = which(names(nittyGrittyData) == "")
+
+nittyGrittyData = nittyGrittyData[, -c(dropCols)]
+```
+
+While things looked good with a cursory glance, we see some issues straight away. The major issue is that we have strings smashed together. Fortunately, this is not too big of a problem:
+
+```{r}
+pattern = "([a-z])([A-Z])"
+
+team %>% 
+  str_subset(pattern) %>% 
+  str_match(pattern)
+
+nittyGrittyData %>% 
+  mutate(team = , 
+         record = str_extract(Team, "[0-9]+-[0-9]+"), 
+         conference)
+
+nittyGrittyData$Team = gsub("([a-z])([A-Z])", "\\1 \\2", nittyGrittyData$Team)
+
+nittyGrittyData$Team = gsub("\\(|\\)", "", nittyGrittyData$Team)
+
+nittyGrittyData %>% 
+  filter(Team != "Team") %>% 
+  separate(., col = Team, into = c("Team", "Record"), 
+           sep = "\\s(?=[0-9]+-)", remove = FALSE)
+
+rmarkdown::paged_table(nittyGrittyData)
+```
+
+That is going to get most of the names separated from the conference, but definitely not all (the abbreviation schools are going to cause us some issues here)!
+
+
+
+We can remove extra rows with variable names and start pulling the data out of the `Team` variable.
+
+```{r}
+nittyGrittyData$Team = gsub("\\(\\)", "", nittyGrittyData$Team)
+```
+

@@ -93,7 +93,7 @@ That is most certainly gibberish, so let's try to look at it before reading it i
 
 ```{r}
 masseyComparison <- readr::read_csv("https://www.masseyratings.com/cb/compare.csv", 
-                            skip = 71)
+                            skip = 73)
 
 rmarkdown::paged_table(masseyComparison)
 ```
@@ -360,8 +360,9 @@ haslamData <- bind_rows(haslamData)
 We have a lot of work done, but it is far from over. Since we should feel pretty good about having our data pulled down, let's be sure to save it.
 
 ```{r, eval = FALSE}
-save(haslamData, kenPomData, masseyComparison, ncaaData, 
-     file = "your/location/basketballData.RData")
+save(haslamData, kenPomData, masseyComparison, ncaaData,
+     hoopMathData, nittyGrittyData,
+     file = "basketballData.RData")
 ```
 
 <aside>
