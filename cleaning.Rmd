@@ -45,7 +45,7 @@ There will be times were very simple operations need to be done for creating a t
 oneManData
 ```
 
-When looking at vector, we see that we have the rankings, a period, a space, and a team name. We can't just split on a space or even a ". ", so we need to get a little bit crafty with our regular expressions.
+When looking at that vector, we see that we have the rankings, a period, a space, and a team name. We can't just split on a space or even a ". ", so we need to get a little bit crafty with our regular expressions.
 
 ```{r}
 oneManDataSplit = strsplit(oneManData, "(?<=[0-9])\\.\\W", perl = TRUE)
@@ -145,10 +145,11 @@ conferenceList = sort(unique(nittyGrittyData$Conference))
 
 nittyGrittyData = nittyGrittyData %>% 
   mutate(Team = ifelse(is.na(Conference), Team, 
-                       gsub("[A-Z]$", "", Team)), 
+                       gsub("[A-Z]$", "", Team)),
          Conference = ifelse(is.na(Conference), 
                              str_extract(Team, paste(conferenceList, collapse = "|")), 
-                             Conference))
+                             Conference), 
+         Team = gsub(paste(conferenceList, collapse = "|"), "", Team))
 
 rmarkdown::paged_table(nittyGrittyData)
 ```
@@ -179,19 +180,37 @@ rmarkdown::paged_table(almostCompleteData)
 
 
 ```{r}
-almostCompleteData = mutate(almostCompleteData, 
-                           joiningName = gsub("\\.|\\(|\\)", "", Team), 
-                           joiningName = gsub("-", " ", joiningName))
+stringNormalizer = function(x) {
+  joiningName = gsub("\\.|\\(|\\)", "", x, perl = TRUE) 
+  joiningName = gsub("-", " ", joiningName, perl = TRUE)
+  joiningName = gsub("St$", "State", joiningName, perl = TRUE)
+  joiningName = gsub("St(?!\\w)", "Saint", joiningName, perl = TRUE)
+  joiningName = gsub("(?<!\\w)No(?!\\w)|(?<!\\w)N(?!\\w)", "North", joiningName, perl = TRUE)
+  joiningName = gsub("(?<!\\w)So(?!\\w)|(?<!\\w)S(?!\\w)", "South", joiningName, perl = TRUE)
+  joiningName = gsub("(?<!\\w)E(?!\\w)", "East", joiningName, perl = TRUE)
+  joiningName = gsub("(?<!\\w)W(?!\\w)", "West", joiningName, perl = TRUE)
+  joiningName = gsub("(?<!\\w)C(?!\\w)", "Central", joiningName, perl = TRUE)
+  return(joiningName)
+}
+
+almostCompleteData$joiningName = stringNormalizer(almostCompleteData$Team)
 ```
 
 We won't even demo the kind of problems a normal join would create if we try to join the massey data in with our nice data.
 
 ```{r}
-masseyComparison = mutate(masseyComparison, 
-                          joiningName = gsub("\\.|\\(|\\)", "", Team), 
-                          joiningName = gsub("-", " ", joiningName))
+masseyComparison$joiningName = stringNormalizer(masseyComparison$Team)
 
 test = stringdist_left_join(almostCompleteData, masseyComparison, by = "joiningName", 
                             method = "jw", max_dist = .1, distance_col = "distance")
+```
+
+
+Check out how we did:
+
+```{r, eval = FALSE}
+test %>% 
+  select(Team.x, Team.y, joiningName.x, joiningName.y, distance) %>% 
+  View()
 ```
 
