@@ -232,3 +232,8 @@ kenPomTest %>%
   select(Team.x, Team.y, joiningName.x, joiningName.y, distance) %>% 
   View()
 ```
+
+
+# Before Next Time
+
+Watch <a href="https://vimeo.com/208650377">Math Behind March Madness</a>
