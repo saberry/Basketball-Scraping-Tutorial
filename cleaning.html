@@ -918,7 +918,7 @@ display: none;
 padding: 0 4px 0 4px;
 }
 .pagedtable .even {
-background-color: rgba(140, 140, 140, 0.1);
+background-color: #fcfcfc;
 }
 .pagedtable-padding-col {
 display: none;
@@ -3256,7 +3256,7 @@ oneManData</code></pre>
 <p>When looking at that vector, we see that we have the rankings, a period, a space, and a team name. We can’t just split on a space or even a “.”, so we need to get a little bit crafty with our regular expressions.</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-oneManDataSplit = strsplit(oneManData, &quot;(?&lt;=[0-9])\\.\\W&quot;, perl = TRUE)
+oneManDataSplit &lt;- strsplit(oneManData, &quot;(?&lt;=[0-9])\\.\\W&quot;, perl = TRUE)
 
 oneManDataSplit</code></pre>
 <pre><code>
@@ -3501,7 +3501,7 @@ character(0)
 <p>Since we know how to best split our data, let’s split those characters into two separate pieces of data:</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-oneManData = data.frame(all = oneManData) %&gt;% 
+oneManData &lt;- data.frame(all = oneManData) %&gt;% 
   separate(., col = all, into = c(&quot;oneManRank&quot;, &quot;Team&quot;), sep = &quot;(?&lt;=[0-9])\\.\\W&quot;) %&gt;% 
   na.omit() %&gt;% 
   mutate(oneManRank = as.numeric(oneManRank)) %&gt;% 
@@ -3528,19 +3528,19 @@ rmarkdown::paged_table(kenPomData)</code></pre>
 <p>We need to do something about those columns names:</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-oldNames = names(kenPomData)
+oldNames &lt;- names(kenPomData)
 
-newNames = kenPomData[1, ]
+newNames &lt;- kenPomData[1, ]
 
-newNames = unlist(ifelse(oldNames != &quot;&quot;, paste(newNames, oldNames, sep = &quot;_&quot;), newNames))
+newNames &lt;- unlist(ifelse(oldNames != &quot;&quot;, paste(newNames, oldNames, sep = &quot;_&quot;), newNames))
 
-newNames = gsub(&quot;\\s|-&quot;, &quot;_&quot;, newNames)
+newNames &lt;- gsub(&quot;\\s|-&quot;, &quot;_&quot;, newNames)
 
-newNames = ifelse(duplicated(newNames), paste(newNames, &quot;rank&quot;, sep = &quot;_&quot;), newNames)
+newNames &lt;- ifelse(duplicated(newNames), paste(newNames, &quot;rank&quot;, sep = &quot;_&quot;), newNames)
 
-names(kenPomData) = newNames
+names(kenPomData) &lt;- newNames
 
-kenPomData = kenPomData %&gt;% 
+kenPomData &lt;- kenPomData %&gt;% 
   filter(Rk != &quot;&quot; &amp; Rk != &quot;Rk&quot;)
 
 rmarkdown::paged_table(kenPomData)</code></pre>
@@ -3553,7 +3553,7 @@ rmarkdown::paged_table(kenPomData)</code></pre>
 <p>Finally, we can clean up the variables and convert them appropriately:</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-kenPomData = kenPomData %&gt;% 
+kenPomData &lt;- kenPomData %&gt;% 
   separate(., W_L, into = c(&quot;Wins&quot;, &quot;Losses&quot;)) %&gt;%
   mutate_at(., .vars = vars(Rk, Wins:AdjEM_NCSOS_rank), as.numeric) %&gt;% 
   mutate(Win_Percentage = Wins / (Wins + Losses))
@@ -3596,16 +3596,16 @@ head(nittyGrittyData)</code></pre>
 <p>For the sake of getting the data in shape, we need to drop those rows without names:</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-dropCols = which(names(nittyGrittyData) == &quot;&quot;)
+dropCols &lt;- which(names(nittyGrittyData) == &quot;&quot;)
 
-nittyGrittyData = nittyGrittyData[, -c(dropCols)]</code></pre>
+nittyGrittyData &lt;- nittyGrittyData[, -c(dropCols)]</code></pre>
 </div>
 <p>While things looked good with a cursory glance, we see some issues straight away. The major issue is that we have strings smashed together. Fortunately, this is not too big of a problem:</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-nittyGrittyData$Team = gsub(&quot;\\(|\\)&quot;, &quot;&quot;, nittyGrittyData$Team)
+nittyGrittyData$Team &lt;- gsub(&quot;\\(|\\)&quot;, &quot;&quot;, nittyGrittyData$Team)
 
-nittyGrittyData = nittyGrittyData %&gt;% 
+nittyGrittyData &lt;- nittyGrittyData %&gt;% 
   filter(Team != &quot;Team&quot;) %&gt;% 
   mutate(confRecord = str_extract(Team, &quot;[0-9]+-[0-9]+&quot;), 
          Team = gsub(&quot;[0-9]+-[0-9]+&quot;, &quot;&quot;, Team)) %&gt;% 
@@ -3616,9 +3616,9 @@ nittyGrittyData = nittyGrittyData %&gt;%
                              NA), 
          Conference = str_squish(Conference))
 
-conferenceList = sort(unique(nittyGrittyData$Conference))
+conferenceList &lt;- sort(unique(nittyGrittyData$Conference))
 
-nittyGrittyData = nittyGrittyData %&gt;% 
+nittyGrittyData &lt;- nittyGrittyData %&gt;% 
   mutate(Team = ifelse(is.na(Conference), Team, 
                        gsub(&quot;[A-Z]$&quot;, &quot;&quot;, Team)),
          Conference = ifelse(is.na(Conference), 
@@ -3638,7 +3638,7 @@ rmarkdown::paged_table(nittyGrittyData)</code></pre>
 <p>We will want to join on team names, so let’s see what we have:</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-teamNames = as.data.frame(do.call(&quot;cbind&quot;, 
+teamNames &lt;- as.data.frame(do.call(&quot;cbind&quot;, 
                                   list(sort(hoopMathData$Team), 
                                        sort(ncaaData$School), 
                                        sort(masseyComparison$Team), 
@@ -3649,7 +3649,7 @@ teamNames = as.data.frame(do.call(&quot;cbind&quot;,
 <p>Clearly the good people at hoopmath don’t hate the world, so they have maintained some consistency with the NCAA. This will actually be an easy join!</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-almostCompleteData = left_join(hoopMathData, ncaaData, by = c(&quot;Team&quot; = &quot;School&quot;))
+almostCompleteData &lt;- left_join(hoopMathData, ncaaData, by = c(&quot;Team&quot; = &quot;School&quot;))
 
 rmarkdown::paged_table(almostCompleteData)</code></pre>
 <div data-pagedtable="false">
@@ -3660,7 +3660,7 @@ rmarkdown::paged_table(almostCompleteData)</code></pre>
 </div>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-stringNormalizer = function(x) {
+stringNormalizer &lt;- function(x) {
   joiningName = gsub(&quot;\\.|\\(|\\)&quot;, &quot;&quot;, x, perl = TRUE) 
   joiningName = gsub(&quot;-&quot;, &quot; &quot;, joiningName, perl = TRUE)
   joiningName = gsub(&quot;St$&quot;, &quot;State&quot;, joiningName, perl = TRUE)
@@ -3678,15 +3678,31 @@ almostCompleteData$joiningName = stringNormalizer(almostCompleteData$Team)</code
 <p>We won’t even demo the kind of problems a normal join would create if we try to join the massey data in with our nice data.</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-masseyComparison$joiningName = stringNormalizer(masseyComparison$Team)
+masseyComparison$joiningName &lt;- stringNormalizer(masseyComparison$Team)
 
-test = stringdist_left_join(almostCompleteData, masseyComparison, by = &quot;joiningName&quot;, 
+masseyTest &lt;- stringdist_left_join(almostCompleteData, masseyComparison, by = &quot;joiningName&quot;, 
                             method = &quot;jw&quot;, max_dist = .1, distance_col = &quot;distance&quot;)</code></pre>
 </div>
 <p>Check out how we did:</p>
 <div class="layout-chunk" data-layout="l-body">
 <pre class="r"><code>
-test %&gt;% 
+masseyTest %&gt;% 
+  select(Team.x, Team.y, joiningName.x, joiningName.y, distance) %&gt;% 
+  View()</code></pre>
+</div>
+<p>This should give us some thoughts for additional cleaning.</p>
+<p>Now, let’s see how something else might join:</p>
+<div class="layout-chunk" data-layout="l-body">
+<pre class="r"><code>
+kenPomData$joiningName &lt;- stringNormalizer(kenPomData$Team)
+
+kenPomTest &lt;- stringdist_left_join(almostCompleteData, kenPomData, by = &quot;joiningName&quot;, 
+                            method = &quot;jw&quot;, max_dist = .1, distance_col = &quot;distance&quot;)</code></pre>
+</div>
+<p>And check:</p>
+<div class="layout-chunk" data-layout="l-body">
+<pre class="r"><code>
+kenPomTest %&gt;% 
   select(Team.x, Team.y, joiningName.x, joiningName.y, distance) %&gt;% 
   View()</code></pre>
 </div>

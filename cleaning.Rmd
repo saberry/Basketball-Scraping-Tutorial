@@ -48,7 +48,7 @@ oneManData
 When looking at that vector, we see that we have the rankings, a period, a space, and a team name. We can't just split on a space or even a ". ", so we need to get a little bit crafty with our regular expressions.
 
 ```{r}
-oneManDataSplit = strsplit(oneManData, "(?<=[0-9])\\.\\W", perl = TRUE)
+oneManDataSplit <- strsplit(oneManData, "(?<=[0-9])\\.\\W", perl = TRUE)
 
 oneManDataSplit
 ```
@@ -58,7 +58,7 @@ That bit of gibberish there is a *lookaround* (specifically, a positive lookbehi
 Since we know how to best split our data, let's split those characters into two separate pieces of data:
 
 ```{r}
-oneManData = data.frame(all = oneManData) %>% 
+oneManData <- data.frame(all = oneManData) %>% 
   separate(., col = all, into = c("oneManRank", "Team"), sep = "(?<=[0-9])\\.\\W") %>% 
   na.omit() %>% 
   mutate(oneManRank = as.numeric(oneManRank)) %>% 
@@ -78,19 +78,19 @@ rmarkdown::paged_table(kenPomData)
 We need to do something about those columns names:
 
 ```{r}
-oldNames = names(kenPomData)
+oldNames <- names(kenPomData)
 
-newNames = kenPomData[1, ]
+newNames <- kenPomData[1, ]
 
-newNames = unlist(ifelse(oldNames != "", paste(newNames, oldNames, sep = "_"), newNames))
+newNames <- unlist(ifelse(oldNames != "", paste(newNames, oldNames, sep = "_"), newNames))
 
-newNames = gsub("\\s|-", "_", newNames)
+newNames <- gsub("\\s|-", "_", newNames)
 
-newNames = ifelse(duplicated(newNames), paste(newNames, "rank", sep = "_"), newNames)
+newNames <- ifelse(duplicated(newNames), paste(newNames, "rank", sep = "_"), newNames)
 
-names(kenPomData) = newNames
+names(kenPomData) <- newNames
 
-kenPomData = kenPomData %>% 
+kenPomData <- kenPomData %>% 
   filter(Rk != "" & Rk != "Rk")
 
 rmarkdown::paged_table(kenPomData)
@@ -100,7 +100,7 @@ rmarkdown::paged_table(kenPomData)
 Finally, we can clean up the variables and convert them appropriately:
 
 ```{r}
-kenPomData = kenPomData %>% 
+kenPomData <- kenPomData %>% 
   separate(., W_L, into = c("Wins", "Losses")) %>%
   mutate_at(., .vars = vars(Rk, Wins:AdjEM_NCSOS_rank), as.numeric) %>% 
   mutate(Win_Percentage = Wins / (Wins + Losses))
@@ -120,17 +120,17 @@ head(nittyGrittyData)
 For the sake of getting the data in shape, we need to drop those rows without names:
 
 ```{r}
-dropCols = which(names(nittyGrittyData) == "")
+dropCols <- which(names(nittyGrittyData) == "")
 
-nittyGrittyData = nittyGrittyData[, -c(dropCols)]
+nittyGrittyData <- nittyGrittyData[, -c(dropCols)]
 ```
 
 While things looked good with a cursory glance, we see some issues straight away. The major issue is that we have strings smashed together. Fortunately, this is not too big of a problem:
 
 ```{r}
-nittyGrittyData$Team = gsub("\\(|\\)", "", nittyGrittyData$Team)
+nittyGrittyData$Team <- gsub("\\(|\\)", "", nittyGrittyData$Team)
 
-nittyGrittyData = nittyGrittyData %>% 
+nittyGrittyData <- nittyGrittyData %>% 
   filter(Team != "Team") %>% 
   mutate(confRecord = str_extract(Team, "[0-9]+-[0-9]+"), 
          Team = gsub("[0-9]+-[0-9]+", "", Team)) %>% 
@@ -141,9 +141,9 @@ nittyGrittyData = nittyGrittyData %>%
                              NA), 
          Conference = str_squish(Conference))
 
-conferenceList = sort(unique(nittyGrittyData$Conference))
+conferenceList <- sort(unique(nittyGrittyData$Conference))
 
-nittyGrittyData = nittyGrittyData %>% 
+nittyGrittyData <- nittyGrittyData %>% 
   mutate(Team = ifelse(is.na(Conference), Team, 
                        gsub("[A-Z]$", "", Team)),
          Conference = ifelse(is.na(Conference), 
@@ -161,7 +161,7 @@ That was some work, but the frustration is just beginning. Ideally, we want to b
 We will want to join on team names, so let's see what we have:
 
 ```{r}
-teamNames = as.data.frame(do.call("cbind", 
+teamNames <- as.data.frame(do.call("cbind", 
                                   list(sort(hoopMathData$Team), 
                                        sort(ncaaData$School), 
                                        sort(masseyComparison$Team), 
@@ -173,14 +173,14 @@ teamNames = as.data.frame(do.call("cbind",
 Clearly the good people at hoopmath don't hate the world, so they have maintained some consistency with the NCAA. This will actually be an easy join!
 
 ```{r}
-almostCompleteData = left_join(hoopMathData, ncaaData, by = c("Team" = "School"))
+almostCompleteData <- left_join(hoopMathData, ncaaData, by = c("Team" = "School"))
 
 rmarkdown::paged_table(almostCompleteData)
 ```
 
 
 ```{r}
-stringNormalizer = function(x) {
+stringNormalizer <- function(x) {
   joiningName = gsub("\\.|\\(|\\)", "", x, perl = TRUE) 
   joiningName = gsub("-", " ", joiningName, perl = TRUE)
   joiningName = gsub("St$", "State", joiningName, perl = TRUE)
@@ -199,9 +199,9 @@ almostCompleteData$joiningName = stringNormalizer(almostCompleteData$Team)
 We won't even demo the kind of problems a normal join would create if we try to join the massey data in with our nice data.
 
 ```{r}
-masseyComparison$joiningName = stringNormalizer(masseyComparison$Team)
+masseyComparison$joiningName <- stringNormalizer(masseyComparison$Team)
 
-test = stringdist_left_join(almostCompleteData, masseyComparison, by = "joiningName", 
+masseyTest <- stringdist_left_join(almostCompleteData, masseyComparison, by = "joiningName", 
                             method = "jw", max_dist = .1, distance_col = "distance")
 ```
 
@@ -209,8 +209,26 @@ test = stringdist_left_join(almostCompleteData, masseyComparison, by = "joiningN
 Check out how we did:
 
 ```{r, eval = FALSE}
-test %>% 
+masseyTest %>% 
   select(Team.x, Team.y, joiningName.x, joiningName.y, distance) %>% 
   View()
 ```
 
+This should give us some thoughts for additional cleaning.
+
+Now, let's see how something else might join:
+
+```{r}
+kenPomData$joiningName <- stringNormalizer(kenPomData$Team)
+
+kenPomTest <- stringdist_left_join(almostCompleteData, kenPomData, by = "joiningName", 
+                            method = "jw", max_dist = .1, distance_col = "distance")
+```
+
+And check:
+
+```{r, eval = FALSE}
+kenPomTest %>% 
+  select(Team.x, Team.y, joiningName.x, joiningName.y, distance) %>% 
+  View()
+```
